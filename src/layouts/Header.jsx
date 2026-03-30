@@ -1,33 +1,54 @@
 import React from 'react';
-// 1. ייבוא הלוגו מתיקיית ה-assets
-import Logo from '../assets/healson-logo.png'; // ודאי ששם הקובץ והסיומת (png) תואמים!
 
 const Header = () => {
   return (
-    // 2. עדכון גובה ה-Header הכולל מ-p-3 ל-p-5 כדי לתת מקום ללוגו הגדול
-    <header className="bg-white text-[#002147] p-5 flex justify-between items-center px-10 border-b-4 border-yellow-500" dir="rtl">
-      <div className="flex items-center gap-5">
-        {/* 3. הגדלת הלוגו: שינינו מ-h-16 ל-h-24. h-24 = 96px */}
-        <img src={Logo} alt="HEALSON Logo" className="h-24 w-auto drop-shadow-sm" />
-        
-        {/* כותרת האפליקציה והסלוגן העברי */}
-        <div className="flex flex-col border-r-2 border-[#002147]/20 pr-5">
-          <h1 className="text-3xl font-extrabold tracking-tight">איתור שירותים ורופאים</h1>
-          <p className="text-sm font-medium text-[#002147]/80">הילסון רפואה אישית בסטנדרט חדש</p>
-        </div>
-      </div>
+    /* 1. רקע לבן עם פס תחתון עבה בתכלת העמוק המקצועי */
+    <header className="bg-white border-b-[5px] border-[#007ea7] shadow-lg relative overflow-hidden" dir="rtl">
       
-      {/* פרטי קשר וסטטוס פנימי */}
-      <div className="flex flex-col items-end gap-1 text-sm text-[#002147]/70">
-        <div className="flex items-center gap-3 font-light">
-          <span>office@healson.co.il</span>
-          <span>|</span>
-          <span>074-7747444</span>
+      {/* 2. פס זהב דק ויוקרתי שמפריד בין התכלת ללבן - נותן את הטאץ' של הילסון */}
+      <div className="absolute bottom-0 left-0 w-full h-[2px] bg-[#D4AF37] opacity-80"></div>
+
+      <div className="max-w-[1440px] mx-auto px-8 py-3 flex justify-between items-center relative z-10">
+        
+        {/* צד ימין: לוגו גדול בתוך סרגל דק (פרופורציונלי) */}
+        <div className="flex items-center gap-6">
+          <div className="transition-transform hover:scale-105">
+            {/* לוגו בגובה h-20 - גדול וברור מאוד */}
+            <img 
+              src="/logo.png" 
+              alt="Healson" 
+              className="h-20 w-auto object-contain drop-shadow-sm" 
+            />
+          </div>
+          
+          {/* הפרדה דקה בתכלת */}
+          <div className="flex flex-col border-r-2 border-[#007ea7]/20 pr-6 hidden md:flex">
+            <h1 className="text-[#002147] font-black text-2xl leading-none tracking-tight">
+              HEALSON <span className="text-[#007ea7]">CRM</span>
+            </h1>
+            <p className="text-[#C5A059] font-bold text-[12px] mt-1 uppercase tracking-[0.2em]">
+              מחירון שירותים • 2026
+            </p>
+          </div>
         </div>
-        <div className="bg-[#002147] text-white text-[10px] px-2 py-0.5 rounded font-mono">
-          ממשק עובדים פנימי | תצוגה בלבד
+
+        {/* צד שמאל: פרטי המרכז עם נוכחות וניקיון */}
+        <div className="flex items-center gap-6">
+           <div className="text-left border-l-2 border-gray-100 pl-6 hidden sm:block">
+              <span className="block text-[#002147] font-black text-xl leading-none">מרכז רפואי הילסון</span>
+              <span className="block text-[#007ea7] text-[11px] font-bold mt-1 uppercase tracking-widest">Premium Care</span>
+           </div>
+           
+           {/* אלמנט זהב יוקרתי - עיגול מעוצב ועדין */}
+           <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-[#D4AF37] via-[#F4DF4E] to-[#C5A059] shadow-md flex items-center justify-center border-2 border-white shadow-[#D4AF37]/20">
+              <span className="text-white font-black text-xl drop-shadow-sm">H</span>
+           </div>
         </div>
+
       </div>
+
+      {/* עיטור רקע עדין מאוד בתכלת העמוק - נותן תחושת הייטק */}
+      <div className="absolute top-0 left-0 w-1/4 h-full bg-gradient-to-r from-[#007ea7]/5 to-transparent skew-x-[-20deg] pointer-events-none"></div>
     </header>
   );
 };

@@ -10,7 +10,7 @@ export const COLUMNS = {
   NAME: 'שם פריט',
   TEAM: 'צוות',
   DEPT: 'מחלקה',
-  CATEGORY: 'קטגוריית פו',
+  CATEGORY: 'קטגוריית פריט',
   PRIVATE_PRICE: 'מחיר (פרטי)',
   HMO_COLS: [
     'מכבי זהב', 'מכבי כסף', 'מכבי שלי', 
