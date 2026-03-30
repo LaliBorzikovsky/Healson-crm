@@ -12,13 +12,40 @@ function App() {
 
   const allowedEmails = import.meta.env.VITE_ALLOWED_EMAILS?.split(',') || [];
 
+  // --- הפונקציה החדשה לרישום באקסל ---
+  const logAction = async (userData, action, details = "") => {
+    const url = import.meta.env.VITE_LOG_SCRIPT_URL;
+    if (!url) return;
+
+    try {
+      await fetch(url, {
+        method: 'POST',
+        mode: 'no-cors', 
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: userData.email,
+          name: userData.name,
+          action: action,
+          details: details
+        })
+      });
+    } catch (error) {
+      console.error("Failed to log action:", error);
+    }
+  };
+  // ----------------------------------
+
   const handleSuccess = (credentialResponse) => {
     const decoded = jwtDecode(credentialResponse.credential);
     const userEmail = decoded.email;
 
     if (allowedEmails.includes(userEmail)) {
-      setUser(decoded); // כאן אנחנו שומרים את האובייקט שכולל את picture
+      setUser(decoded);
       setIsAuthenticated(true);
+      
+      // כאן אנחנו קוראים לפונקציה מיד אחרי הלוגין המוצלח
+      logAction(decoded, "התחברות", "נכנס למערכת המחירון");
+      
     } else {
       alert("מצטערים, אין לך הרשאה.");
       googleLogout();
@@ -26,6 +53,9 @@ function App() {
   };
 
   const handleLogout = () => {
+    // אופציונלי: אפשר לתעד גם התנתקות
+    if (user) logAction(user, "התנתקות", "יצא מהמערכת");
+    
     googleLogout();
     setUser(null);
     setIsAuthenticated(false);
@@ -33,7 +63,6 @@ function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans" dir="rtl">
-      {/* חשוב: מעבירים את המשתנה user לתוך ה-Header */}
       <Header user={user} onLogout={handleLogout} />
 
       <main className="p-2 flex flex-col items-center">
