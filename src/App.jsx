@@ -10,12 +10,10 @@ function App() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans" dir="rtl">
       <Header />
-      
-      {/* מעבירים לחיפוש את הפונקציה שמעדכנת את הסטייט */}
-      <SearchBar onSearch={setSearchTerm} />
-      
+
       <main className="p-2">
-        {/* מעבירים לטבלה את הערך הנוכחי לסינון */}
+        <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
+
         <ResultsTable searchTerm={searchTerm} />
       </main>
     </div>
