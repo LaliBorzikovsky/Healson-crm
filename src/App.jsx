@@ -48,7 +48,7 @@ function App() {
         ) : (
           <div className="w-full">
             <SearchBar searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
-            <ResultsTable searchTerm={searchTerm} />
+            <ResultsTable searchTerm={searchTerm} isAuthenticated={isAuthenticated} />
           </div>
         )}
       </main>
