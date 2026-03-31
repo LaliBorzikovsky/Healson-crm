@@ -1,14 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import TreatmentRow from './TreatmentRow';
 import TreatmentModal from './TreatmentModal';
 
+/**
+ * קומפוננטת טבלת התוצאות הראשית.
+ * מנהלת את משיכת הנתונים מ-Google Sheets, סינון התוצאות ותצוגת השורות.
+ */
 const ResultsTable = ({
   searchTerm = "",
   selectedInsurance = "all",
   selectedDept = "all",
   selectedBranch = "all",
-  isAuthenticated,
   user,
   logAction,
   onDeptsLoaded,
@@ -16,16 +19,51 @@ const ResultsTable = ({
 }) => {
   const [data, setData] = useState({ headers: [], rows: [] });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [selectedRow, setSelectedRow] = useState(null);
 
+  // פונקציית עזר לאיתור אינדקס עמודה לפי שם
+  const getCol = (name) => data.headers ? data.headers.findIndex(h => h && h.trim() === name) : -1;
+
+  // מיפוי אינדקסים של עמודות הנתונים
+  const idx = useMemo(() => ({
+    code: getCol("קוד פריט"),
+    name: getCol("שם פריט"),
+    doctor: getCol("צוות"),
+    category: getCol("קטגורית פריט"),
+    group: getCol("קבוצת יומן"),
+    pricePrivate: getCol("מחיר (פרטי)"),
+    combinedRefund: getCol("מקדמה הילסון החזר ופרטי"),
+    prepaidSelf: getCol("מקדמה השתתפות עצמית"),
+    meuhedetAdif: getCol("מאוחדת עדיף"),
+    meuhedetSia: getCol("מאוחדת שיא"),
+    clalit: getCol("כללית מושלם ופלטיניום"),
+    leumit: getCol("לאומית זהב"),
+    maccabiSheli: getCol("מכבי שלי"),
+    maccabiKesef: getCol("מכבי כסף"),
+    maccabiZahav: getCol("מכבי זהב"),
+    branch: getCol("סניף")
+  }), [data.headers]);
+
+  // משיכת נתונים מ-Google Sheets
   useEffect(() => {
     const fetchData = async () => {
       const apiKey = import.meta.env.VITE_API_KEY;
       const sheetId = import.meta.env.VITE_SHEET_ID;
+      
+      if (!apiKey || !sheetId) {
+        setError("חסרים משתני סביבה (API Key או Sheet ID)");
+        setLoading(false);
+        return;
+      }
+
       const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/data!A1:AZ2000?key=${apiKey}`;
 
       try {
+        setLoading(true);
         const response = await fetch(url);
+        if (!response.ok) throw new Error("נכשל בחיבור לשרת הנתונים (ודא שה-API Key וה-Sheet ID תקינים)");
+        
         const result = await response.json();
 
         if (result.values) {
@@ -33,7 +71,7 @@ const ResultsTable = ({
           const rows = result.values.slice(1);
           setData({ headers, rows });
 
-          // 1. חילוץ מחלקות
+          // שליחת רשימת המחלקות הייחודיות ל-App
           if (onDeptsLoaded) {
             const groupIdx = headers.findIndex(h => h && h.trim() === "קבוצת יומן");
             if (groupIdx !== -1) {
@@ -44,7 +82,7 @@ const ResultsTable = ({
             }
           }
 
-          // 2. חילוץ סניפים
+          // שליחת רשימת הסניפים הייחודיים ל-App
           if (onBranchesLoaded) {
             const branchIdx = headers.findIndex(h => h && h.trim() === "סניף");
             if (branchIdx !== -1) {
@@ -56,72 +94,55 @@ const ResultsTable = ({
           }
         }
       } catch (e) {
-        console.error("Error fetching data", e);
+        setError(e.message);
+        console.error("Fetch error:", e);
       } finally {
         setLoading(false);
       }
     };
+
     fetchData();
-    // הוספת הפונקציות ל-Dependencies כדי למנוע אזהרות
   }, [onDeptsLoaded, onBranchesLoaded]);
 
-  const getCol = (name) => data.headers ? data.headers.findIndex(h => h && h.trim() === name) : -1;
-
-  const idx = {
-    code: getCol("קוד פריט"),
-    name: getCol("שם פריט"),
-    doctor: getCol("צוות"),
-    category: getCol("קטגורית פריט"),
-    group: getCol("קבוצת יומן"),
-    pricePrivate: getCol("מחיר (פרטי)"),
-    combinedRefund: getCol("מקדמה הילסון החזר ופרטי"),
-    prepaidSelf: getCol("מקדמה השתתפות עצמית"),
-    meuhedetK: getCol("מאוחדת עדיף ושיא"),
-    clalit: getCol("כללית מושלם ופלטיניום"),
-    leumit: getCol("לאומית זהב"),
-    maccabiSheli: getCol("מכבי שלי"),
-    maccabiKesef: getCol("מכבי כסף"),
-    maccabiZahav: getCol("מכבי זהב"),
-    branch: getCol("סניף")
-  };
-
+  // פונקציית עזר לעיצוב מחיר
   const formatPrice = (val) => {
-    if (!val || val === "0" || val === "" || val === "---") return "---";
-    return val.toString().includes('₪') ? val : `₪${val}`;
+    if (!val || ["0", "", "---"].includes(val.toString().trim())) return "---";
+    const cleanVal = val.toString().replace('₪', '').trim();
+    return `₪${cleanVal}`;
   };
 
-  const filteredRows = data.rows.filter(row => {
-    const s = searchTerm.toLowerCase().trim();
-    const name = row[idx.name]?.toString().toLowerCase() || "";
-    const doctor = row[idx.doctor]?.toString().toLowerCase() || "";
-    const code = row[idx.code]?.toString().toLowerCase() || "";
-    const dept = row[idx.group]?.toString().toLowerCase() || "";
-    const branch = row[idx.branch]?.toString().toLowerCase() || "";
+  // לוגיקת סינון הנתונים
+  const filteredRows = useMemo(() => {
+    return data.rows.filter(row => {
+      const s = searchTerm.toLowerCase().trim();
+      
+      const fieldsToSearch = [
+        row[idx.name],
+        row[idx.doctor],
+        row[idx.code],
+        row[idx.group],
+        row[idx.branch]
+      ].map(f => (f?.toString() || "").toLowerCase());
 
-    // 1. סינון חיפוש חופשי - הוספתי גם את branch כאן
-    const matchesSearch = !s || [name, doctor, code, dept, branch].some(field => field.includes(s));
+      // 1. סינון חיפוש
+      const matchesSearch = !s || fieldsToSearch.some(field => field.includes(s));
 
-    // 2. סינון קופת חולים
-    let matchesInsurance = true;
-    if (selectedInsurance !== "all") {
-      const val = row[idx[selectedInsurance]];
-      matchesInsurance = val && !["", "0", "---"].includes(val.toString().trim());
-    }
+      // 2. סינון קופת חולים
+      let matchesInsurance = true;
+      if (selectedInsurance !== "all") {
+        const val = row[idx[selectedInsurance]];
+        matchesInsurance = val && !["", "0", "---"].includes(val.toString().trim());
+      }
 
-    // 3. סינון מחלקה
-    let matchesDept = true;
-    if (selectedDept !== "all") {
-      matchesDept = row[idx.group]?.toString().trim() === selectedDept;
-    }
+      // 3. סינון מחלקה
+      const matchesDept = selectedDept === "all" || row[idx.group]?.toString().trim() === selectedDept;
 
-    // 4. סינון סניף
-    let matchesBranch = true;
-    if (selectedBranch !== "all") {
-      matchesBranch = row[idx.branch]?.toString().trim() === selectedBranch;
-    }
+      // 4. סינון סניף
+      const matchesBranch = selectedBranch === "all" || row[idx.branch]?.toString().trim() === selectedBranch;
 
-    return matchesSearch && matchesInsurance && matchesDept && matchesBranch;
-  });
+      return matchesSearch && matchesInsurance && matchesDept && matchesBranch;
+    });
+  }, [data.rows, searchTerm, selectedInsurance, selectedDept, selectedBranch, idx]);
 
   const handleSelectRow = (row) => {
     setSelectedRow(row);
@@ -131,8 +152,17 @@ const ResultsTable = ({
   };
 
   if (loading) return (
-    <div className="flex justify-center p-20">
+    <div className="flex flex-col items-center justify-center p-20 gap-4">
       <Loader2 className="animate-spin text-[#007ea7]" size={40} />
+      <p className="text-slate-500 font-medium">טוען נתונים מהמערכת...</p>
+    </div>
+  );
+
+  if (error) return (
+    <div className="flex flex-col items-center justify-center p-20 text-red-500 gap-2 text-center">
+      <AlertCircle size={40} />
+      <p className="font-bold">שגיאה בטעינת הנתונים</p>
+      <p className="text-sm max-w-md">{error}</p>
     </div>
   );
 
@@ -142,16 +172,17 @@ const ResultsTable = ({
         {filteredRows.length > 0 ? (
           filteredRows.map((row, index) => (
             <TreatmentRow
-              key={index}
+              key={`${row[idx.code]}-${index}`}
               row={row}
               idx={idx}
               formatPrice={formatPrice}
               onSelect={handleSelectRow}
+              selectedInsurance={selectedInsurance} // שים לב: ה-Prop הזה נוסף עכשיו!
             />
           ))
         ) : (
-          <div className="text-center p-20 bg-white rounded-3xl border border-slate-100">
-            <p className="text-slate-400 font-medium">לא נמצאו תוצאות התואמות את הסינון.</p>
+          <div className="text-center p-20 bg-white rounded-3xl border border-slate-100 shadow-sm">
+            <p className="text-slate-400 font-medium italic">לא נמצאו תוצאות התואמות את החיפוש והסינון שלך.</p>
           </div>
         )}
       </div>
@@ -161,6 +192,7 @@ const ResultsTable = ({
         idx={idx}
         formatPrice={formatPrice}
         onClose={() => setSelectedRow(null)}
+        selectedInsurance={selectedInsurance}
       />
     </div>
   );
