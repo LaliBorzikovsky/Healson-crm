@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Loader2, AlertCircle } from 'lucide-react';
 import TreatmentRow from './TreatmentRow';
 import TreatmentModal from './TreatmentModal';
+import Fuse from 'fuse.js';
 
 /**
  * קומפוננטת טבלת התוצאות הראשית.
@@ -50,7 +51,7 @@ const ResultsTable = ({
     const fetchData = async () => {
       const apiKey = import.meta.env.VITE_API_KEY;
       const sheetId = import.meta.env.VITE_SHEET_ID;
-      
+
       if (!apiKey || !sheetId) {
         setError("חסרים משתני סביבה (API Key או Sheet ID)");
         setLoading(false);
@@ -63,7 +64,7 @@ const ResultsTable = ({
         setLoading(true);
         const response = await fetch(url);
         if (!response.ok) throw new Error("נכשל בחיבור לשרת הנתונים (ודא שה-API Key וה-Sheet ID תקינים)");
-        
+
         const result = await response.json();
 
         if (result.values) {
@@ -112,36 +113,78 @@ const ResultsTable = ({
   };
 
   // לוגיקת סינון הנתונים
+  /**
+   * מערכת סינון ודירוג נתונים מתקדמת
+   * --------------------------------
+   * הלוגיקה פועלת בשני שלבים:
+   * שלב 1 (סינון קשיח): סינון אבסולוטי לפי בחירות המשתמש (קופה, מחלקה, סניף).
+   * שלב 2 (סינון גמיש): חיפוש טקסטואלי חכם המאפשר טעויות כתיב ומדרג תוצאות לפי רלוונטיות.
+   */
   const filteredRows = useMemo(() => {
-    return data.rows.filter(row => {
-      const s = searchTerm.toLowerCase().trim();
-      
-      const fieldsToSearch = [
-        row[idx.name],
-        row[idx.doctor],
-        row[idx.code],
-        row[idx.group],
-        row[idx.branch]
-      ].map(f => (f?.toString() || "").toLowerCase());
 
-      // 1. סינון חיפוש
-      const matchesSearch = !s || fieldsToSearch.some(field => field.includes(s));
+    // --- שלב א': סינון מוקדם (Pre-filtering) ---
+    // סינון זה מתבצע על כל שורות הנתונים ומחזיר רק את אלו שעומדים בתנאי הסף
+    let results = data.rows.filter(row => {
 
-      // 2. סינון קופת חולים
+      // 1. בדיקת התאמה לקופת חולים:
+      // מוודא שיש ערך תקין (מחיר/הסדר) בעמודה של הקופה שנבחרה
       let matchesInsurance = true;
       if (selectedInsurance !== "all") {
         const val = row[idx[selectedInsurance]];
         matchesInsurance = val && !["", "0", "---"].includes(val.toString().trim());
       }
 
-      // 3. סינון מחלקה
-      const matchesDept = selectedDept === "all" || row[idx.group]?.toString().trim() === selectedDept;
+      // 2. בדיקת התאמה למחלקה (קבוצת יומן):
+      const matchesDept = selectedDept === "all" ||
+        row[idx.group]?.toString().trim() === selectedDept;
 
-      // 4. סינון סניף
-      const matchesBranch = selectedBranch === "all" || row[idx.branch]?.toString().trim() === selectedBranch;
+      // 3. בדיקת התאמה לסניף:
+      const matchesBranch = selectedBranch === "all" ||
+        row[idx.branch]?.toString().trim() === selectedBranch;
 
-      return matchesSearch && matchesInsurance && matchesDept && matchesBranch;
+      // רק שורה שעומדת בכל שלושת התנאים עוברת לשלב החיפוש
+      return matchesInsurance && matchesDept && matchesBranch;
     });
+
+    // --- שלב ב': מנוע חיפוש חכם (Fuzzy Search Engine) ---
+    const s = searchTerm.toLowerCase().trim();
+
+    if (s) {
+      // הגדרות מנוע החיפוש Fuse.js
+      const fuseOptions = {
+        // מפתחות החיפוש עם משקלים (Weight): ככל שהמשקל גבוה יותר, השדה משפיע יותר על הדירוג
+        keys: [
+         { name: 'doctor', weight: 2.0 },   // שם הרופא/צוות - עדיפות עליונה
+          { name: 'name', weight: 0.8 },     // שם הטיפול/פריט
+          { name: 'code', weight: 0.4 },     // קוד פריט
+          { name: 'group', weight: 1.2 },    // קבוצת יומן
+          { name: 'branch', weight: 0.2 }    // סניף
+        ],
+        // threshold (סף רגישות): 0.35 מאפשר גמישות לטעויות כתיב קלות (כמו י' חסרה/מיותרת)
+        // מבלי להציג תוצאות לא רלוונטיות לחלוטין.
+        threshold: 0.35,
+
+        // distance: טווח הסטייה המקסימלי מהמילה המקורית
+        distance: 100,
+
+        // shouldSort: מבטיח שהתוצאה המדויקת ביותר תופיע תמיד בראש הרשימה
+        shouldSort: true,
+
+        // getFn: מחלץ את המידע מהמבנה הנתונים (מערך) לפי האינדקסים הדינמיים (idx)
+        getFn: (row, key) => row[idx[key]]
+      };
+
+      // אתחול המנוע על התוצאות שסוננו בשלב א'
+      const fuse = new Fuse(results, fuseOptions);
+      const fuseResults = fuse.search(s);
+
+      // החזרת האובייקטים (השורות) בלבד מתוך תוצאות החיפוש
+      return fuseResults.map(res => res.item);
+    }
+
+    // במידה ולא הוזן טקסט לחיפוש, מוצגות כל התוצאות שעברו את שלב א' בסדר המקורי שלהן
+    return results;
+
   }, [data.rows, searchTerm, selectedInsurance, selectedDept, selectedBranch, idx]);
 
   const handleSelectRow = (row) => {
