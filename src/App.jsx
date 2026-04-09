@@ -28,10 +28,20 @@ function App() {
   const [availableBranches, setAvailableBranches] = useState([]);
   const [isBranchOpen, setIsBranchOpen] = useState(false);
   const [branchSearch, setBranchSearch] = useState("");
+  // --- ניהול אימות משתמש והמשכיות נתונים (Authentication & Persistence) ---
 
-  // --- ניהול משתמש ואימות ---
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState(null);
+  /** * אתחול מצב המשתמש מה-LocalStorage.
+   * מאפשר למשתמש להישאר מחובר גם לאחר רענון הדף (Session Persistence).
+   */
+  const [user, setUser] = useState(() => {
+    const savedUser = localStorage.getItem('healson_user');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
+
+  /** * הגדרת מצב האימות בהתבסס על קיום אובייקט המשתמש.
+   * שימוש באופרטור !! (Double NOT) להמרת ערך המשתמש לערך בוליאני (Boolean).
+   */
+  const [isAuthenticated, setIsAuthenticated] = useState(!!user);
 
   // רשימת אימיילים מורשים מתוך משתני הסביבה - כולל ניקוי רווחים
   const allowedEmails = useMemo(() => {
@@ -81,10 +91,12 @@ function App() {
     try {
       const decoded = jwtDecode(credentialResponse.credential);
       const userEmail = decoded.email.toLowerCase().trim();
-      
+
       if (allowedEmails.includes(userEmail)) {
         setUser(decoded);
         setIsAuthenticated(true);
+        // שומר את פרטי המשתמש בזיכרון של המכשיר
+        localStorage.setItem('healson_user', JSON.stringify(decoded));
         logAction(decoded, "התחברות", "נכנס למערכת");
       } else {
         alert(`אין לך הרשאת גישה למערכת. המייל ${userEmail} אינו מורשה.`);
@@ -101,6 +113,8 @@ function App() {
   const handleLogout = () => {
     if (user) logAction(user, "התנתקות");
     googleLogout();
+    // מוחק את פרטי המשתמש מהזיכרון של המכשיר
+    localStorage.removeItem('healson_user');
     setUser(null);
     setIsAuthenticated(false);
   };
@@ -108,12 +122,12 @@ function App() {
   const selectStyle = "h-[52px] px-4 rounded-2xl border border-slate-200 bg-white text-[#002147] font-bold focus:outline-none focus:ring-2 shadow-sm appearance-none cursor-pointer w-full transition-all";
 
   // פילטור רשימות הדרופ-דאון
-  const filteredDepts = useMemo(() => 
+  const filteredDepts = useMemo(() =>
     availableDepts.filter(d => d.toLowerCase().includes(deptSearch.toLowerCase())),
     [availableDepts, deptSearch]
   );
 
-  const filteredBranches = useMemo(() => 
+  const filteredBranches = useMemo(() =>
     availableBranches.filter(b => b.toLowerCase().includes(branchSearch.toLowerCase())),
     [availableBranches, branchSearch]
   );
@@ -133,7 +147,7 @@ function App() {
           </div>
         ) : (
           <div className="w-full max-w-6xl px-4">
-            
+
             {/* שורת פילטרים */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-3 mb-6 w-full">
 
