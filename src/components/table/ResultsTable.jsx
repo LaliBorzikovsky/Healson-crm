@@ -154,7 +154,7 @@ const ResultsTable = ({
       const fuseOptions = {
         // מפתחות החיפוש עם משקלים (Weight): ככל שהמשקל גבוה יותר, השדה משפיע יותר על הדירוג
         keys: [
-         { name: 'doctor', weight: 2.0 },   // שם הרופא/צוות - עדיפות עליונה
+          { name: 'doctor', weight: 2.0 },   // שם הרופא/צוות - עדיפות עליונה
           { name: 'name', weight: 0.8 },     // שם הטיפול/פריט
           { name: 'code', weight: 0.4 },     // קוד פריט
           { name: 'group', weight: 1.2 },    // קבוצת יומן
@@ -187,12 +187,26 @@ const ResultsTable = ({
 
   }, [data.rows, searchTerm, selectedInsurance, selectedDept, selectedBranch, idx]);
 
-  const handleSelectRow = (row) => {
-    setSelectedRow(row);
-    if (logAction && user) {
-      logAction(user, "צפייה בטיפול", row[idx.name]);
-    }
-  };
+  /**
+ * מטפל בבחירת שורה בטבלה ושליחת לוג לשרת.
+ * @param {Array|Object} row - נתוני השורה שנבחרה מהטבלה.
+ */
+  console.log("DEBUG User:", user);
+  /**
+ * handleSelectRow - מטפל בלחיצה על שורה ושליחת הנתונים לתיעוד.
+ * @param {Array} row - מערך נתוני השורה מהגיליון.
+ */
+const handleSelectRow = (row) => {
+  setSelectedRow(row); 
+
+  if (logAction && user) {
+    logAction(user, "צפייה בטיפול", {
+      itemCode: row[0], 
+      itemName: row[1],
+      doctorName: row[2]
+    });
+  }
+};
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center p-20 gap-4">

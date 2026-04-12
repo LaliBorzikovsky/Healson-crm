@@ -63,26 +63,42 @@ function App() {
   /**
    * שליחת לוג לפעולות משתמש
    */
-  const logAction = useCallback(async (userData, action, details = "") => {
-    const url = import.meta.env.VITE_LOG_SCRIPT_URL;
-    if (!url || !userData) return;
+  /**
+   * logAction - שליחת תיעוד פעולה מפורט לגיליון Google Sheets.
+   * הפונקציה מבטיחה שכל שדות המידע (משתמש, פעולה, פריט) יישלחו כראוי.
+   * * @param {Object} userData - אובייקט המשתמש שהתקבל מגוגל (מכיל email, name וכו').
+   * @param {string} action - תיאור הפעולה המבוצעת (למשל: "צפייה בטיפול").
+   * @param {Object} logData - אובייקט נתונים נוספים (itemName, doctorName, itemCode).
+   */
+  /**
+ * logAction - מתעד פעולות משתמש בגיליון Google Sheets.
+ * @param {Object} userData - אובייקט המשתמש (כפי שמופיע ב-Console ששלחת).
+ * @param {string} action - תיאור הפעולה המבוצעת.
+ * @param {Object} logData - נתוני השורה (שם טיפול, רופא, קוד).
+ */
+/**
+   * שליחת לוג לגיליון גוגל
+   */
+ const logAction = useCallback(async (userData, action, logData = {}) => {
+  const url = import.meta.env.VITE_LOG_SCRIPT_URL;
+  if (!url || !userData) return;
 
-    try {
-      await fetch(url, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: userData.email,
-          name: userData.name,
-          action,
-          details
-        })
-      });
-    } catch (error) {
-      console.error("Logging failed:", error);
-    }
-  }, []);
+  const payload = {
+    email: userData.email || "",
+    userName: userData.name || userData.given_name || "Unknown",
+    action: action,
+    itemName: String(logData.itemName || ""),
+    doctorName: String(logData.doctorName || ""),
+    itemCode: String(logData.itemCode || "")
+  };
+
+  fetch(url, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(payload)
+  }).catch(e => console.warn("Log failed", e));
+}, []);
 
   /**
    * טיפול בהתחברות מוצלחת דרך Google
@@ -97,7 +113,7 @@ function App() {
         setIsAuthenticated(true);
         // שומר את פרטי המשתמש בזיכרון של המכשיר
         localStorage.setItem('healson_user', JSON.stringify(decoded));
-        logAction(decoded, "התחברות", "נכנס למערכת");
+        logAction(decoded, "התחברות", { itemName: "נכנס למערכת" });
       } else {
         alert(`אין לך הרשאת גישה למערכת. המייל ${userEmail} אינו מורשה.`);
         googleLogout();
@@ -111,8 +127,7 @@ function App() {
    * התנתקות מהמערכת
    */
   const handleLogout = () => {
-    if (user) logAction(user, "התנתקות");
-    googleLogout();
+    if (user) logAction(user, "התנתקות", { itemName: "יצא מהמערכת" }); googleLogout();
     // מוחק את פרטי המשתמש מהזיכרון של המכשיר
     localStorage.removeItem('healson_user');
     setUser(null);
