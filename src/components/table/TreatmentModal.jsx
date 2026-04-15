@@ -1,22 +1,13 @@
 import React from 'react';
-import { X, ShieldCheck, CreditCard, UserRound, MapPin } from 'lucide-react';
+import { X, CreditCard, UserRound, MapPin, Award } from 'lucide-react';
 
-/**
- * קומפוננטת מודאל להצגת פרטי טיפול מלאים.
- * * @param {Object} row - אובייקט המכיל את נתוני השורה מהטבלה
- * @param {Object} idx - אובייקט המיפוי של אינדקסי העמודות (Column Mapping)
- * @param {Function} formatPrice - פונקציה לעיצוב מחיר (למשל הוספת ₪)
- * @param {Function} onClose - פונקציה לסגירת המודאל
- */
 const TreatmentModal = ({ row, idx, formatPrice, onClose }) => {
-  // הגנה למקרה שהמודאל נפתח ללא נתונים
   if (!row) return null;
 
-  // ריכוז המידע על החזרי קופות החולים למבנה נתונים סרוק
   const insuranceInfo = [
     { label: "מאוחדת עדיף", val: row[idx.meuhedetAdif] },
     { label: "מאוחדת שיא", val: row[idx.meuhedetSia] },
-    { label: "כללית מושלם ופלטיניום", val: row[idx.clalit] },
+    { label: "כללית מושלם", val: row[idx.clalit] },
     { label: "לאומית זהב", val: row[idx.leumit] },
     { label: "מכבי שלי", val: row[idx.maccabiSheli] },
     { label: "מכבי כסף", val: row[idx.maccabiKesef] },
@@ -25,104 +16,81 @@ const TreatmentModal = ({ row, idx, formatPrice, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* רקע מעומעם (Overlay) */}
-      <div
-        className="absolute inset-0 bg-[#002147]/60 backdrop-blur-sm animate-in fade-in duration-300"
-        onClick={onClose}
-      />
+      {/* Overlay */}
+      <div className="absolute inset-0 bg-[#000b1a]/80 backdrop-blur-sm" onClick={onClose} />
 
-      {/* גוף המודאל */}
-      <div className="relative bg-white w-full max-w-lg rounded-[2rem] shadow-2xl animate-in zoom-in-95 duration-300 flex flex-col max-h-[95vh] overflow-hidden">
+      {/* גוף המודאל - מהודק וקומפקטי (Compact Elite) */}
+      <div className="relative bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col border border-[#D4AF37]/20 transition-all duration-300">
         
-        {/* כפתור סגירה */}
-        <button
-          onClick={onClose}
-          aria-label="סגור מודאל"
-          className="absolute top-5 left-5 p-2 bg-slate-100 hover:bg-red-50 hover:text-red-500 rounded-full transition-colors z-10"
-        >
-          <X size={20} />
-        </button>
+        {/* Header - כחול עמוק מהודק */}
+        <div className="bg-[#002147] p-6 pb-10 text-white relative">
+          <button onClick={onClose} className="absolute top-5 left-5 text-white/30 hover:text-[#D4AF37] transition-colors">
+            <X size={20} />
+          </button>
 
-        {/* חלק עליון - כותרת ופרטי מחיר */}
-        <div className="bg-[#002147] p-5 text-white shrink-0">
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <ShieldCheck size={14} className="text-[#D4AF37]" />
-                <span className="text-[#D4AF37] text-[9px] font-bold tracking-widest uppercase">מידע למרפאה</span>
-              </div>
-              <h2 className="text-xl font-black leading-tight">{row[idx.name]}</h2>
-              
-              {/* הצגת שם הרופא במידה וקיים */}
-              {row[idx.doctor] && row[idx.doctor] !== "0" && (
-                <div className="flex items-center gap-2 mt-1 text-[#D4AF37]">
-                  <UserRound size={12} />
-                  <span className="text-xs font-bold">{row[idx.doctor]}</span>
-                </div>
-              )}
-            </div>
-
-            {/* תיבת מחיר פרטי */}
-            <div className="text-left bg-white/10 px-3 py-2 rounded-xl border border-white/10 shrink-0 mt-6 self-end">
-              <span className="block text-[8px] text-[#D4AF37] font-bold uppercase">מחיר פרטי</span>
-              <span className="text-lg font-black text-white">{formatPrice(row[idx.pricePrivate])}</span>
-            </div>
+          <div className="flex items-center gap-2 mb-2">
+            <Award size={14} className="text-[#D4AF37]" />
+            <span className="text-[#D4AF37] text-[10px] font-black uppercase tracking-[0.3em]">Healson Elite</span>
           </div>
 
-          {/* תגיות מידע (סניף, קטגוריה, קבוצה) */}
-          <div className="flex flex-wrap gap-2 items-center">
-            {row[idx.branch] && (
-              <div className="flex items-center gap-1.5 bg-[#D4AF37] px-2 py-1 rounded-md text-[#002147]">
-                <MapPin size={12} strokeWidth={3} />
-                <span className="text-[11px] font-black">{row[idx.branch]}</span>
-              </div>
-            )}
-            <div className="flex items-center gap-1.5 bg-white/5 px-2 py-1 rounded-md border border-white/10 text-[10px] font-bold opacity-90">
-              {row[idx.group] || "---"}
+          <h2 className="text-2xl font-black leading-tight tracking-tight mb-5">
+            {row[idx.name]}
+          </h2>
+
+          <div className="flex gap-4 opacity-90">
+            <div className="flex items-center gap-2">
+              <UserRound size={14} className="text-[#D4AF37]" />
+              <span className="text-[12px] font-bold">{row[idx.doctor] || "מרפאה כללית"}</span>
             </div>
-            <div className="flex items-center gap-1.5 bg-white/10 px-2 py-1 rounded-md border border-white/10 text-[10px] font-bold">
-              {row[idx.category] || "---"}
+            <div className="flex items-center gap-2 border-r border-white/20 pr-4">
+              <MapPin size={14} className="text-[#D4AF37]" />
+              <span className="text-[12px] font-bold">{row[idx.branch]}</span>
             </div>
           </div>
         </div>
 
-        {/* חלק מרכזי - נתוני החזרים ותשלומים */}
-        <div className="p-5 space-y-5 overflow-y-auto flex-1">
-          
-          {/* כרטיסיית סיכום החזר והשתתפות */}
-          <div className="bg-gradient-to-br from-[#D4AF37] to-[#B8860B] rounded-2xl p-5 flex justify-between items-center shadow-lg text-[#002147]">
-            <div className="text-center flex-1">
-              <span className="block text-[10px] font-bold uppercase opacity-80 mb-1">מקדמה הילסון / החזר</span>
-              <span className="text-2xl font-black text-white">{formatPrice(row[idx.combinedRefund])}</span>
+        {/* באנר המידע המרכזי - זהב ברור במידות נכונות */}
+        <div className="px-5 -mt-6 relative z-10">
+          <div className="bg-gradient-to-r from-[#D4AF37] to-[#B8860B] rounded-[1.8rem] p-5 shadow-lg flex justify-between items-center text-[#002147] border border-white/10">
+            <div className="flex flex-col gap-0.5">
+               <span className="text-[11px] font-black uppercase tracking-wider opacity-70">מחלקה • יחידה</span>
+               <span className="text-[13px] font-black leading-tight">{row[idx.group]} | {row[idx.category]}</span>
             </div>
-            <div className="w-px h-10 bg-[#002147]/20"></div>
-            <div className="text-center flex-1">
-              <span className="block text-[10px] font-bold uppercase opacity-80 mb-1">השתתפות עצמית</span>
-              <span className="text-2xl font-black text-white">{formatPrice(row[idx.prepaidSelf])}</span>
-            </div>
-          </div>
-
-          {/* פירוט לפי קופות חולים */}
-          <div>
-            <h4 className="text-[#002147] font-bold text-sm mb-3 flex items-center gap-2">
-              <CreditCard size={14} /> החזרים לפי קופות:
-            </h4>
-            <div className="grid grid-cols-2 gap-2">
-              {insuranceInfo.map((item, i) => (
-                <div key={i} className="bg-slate-50 p-2 rounded-lg border border-slate-100">
-                  <span className="block text-[9px] font-bold text-slate-400 uppercase mb-1">{item.label}</span>
-                  <span className="text-sm font-bold text-[#002147]">{formatPrice(item.val)}</span>
-                </div>
-              ))}
+            <div className="text-left border-r border-[#002147]/10 pr-5">
+              <span className="block text-[11px] font-black uppercase opacity-70 mb-0.5">מחיר פרטי</span>
+              <span className="text-2xl font-black leading-none tracking-tighter">{formatPrice(row[idx.pricePrivate])}</span>
             </div>
           </div>
         </div>
 
-        {/* חלק תחתון - קרדיט וקוד טיפול */}
-        <div className="bg-slate-50 p-4 text-center border-t border-slate-100">
-          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-            Healson Price List System • {row[idx.code]}
-          </p>
+        {/* קופות חולים - פריסה מהודקת וקריאה */}
+        <div className="p-6 pt-8 flex-1">
+          <div className="flex items-center gap-2 mb-4">
+            <CreditCard size={15} className="text-[#002147] opacity-50" />
+            <span className="text-[12px] font-black text-[#002147] uppercase tracking-widest">החזרים לפי קופות</span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-x-6 gap-y-3.5">
+            {insuranceInfo.map((item, i) => (
+              <div key={i} className="flex flex-col gap-0.5 border-b border-slate-50 pb-1.5 group">
+                <span className="text-[11px] font-bold text-slate-400 group-hover:text-[#D4AF37] transition-colors uppercase tracking-tight">
+                  {item.label}
+                </span>
+                <span className="text-[14px] font-black text-[#002147]">
+                  {formatPrice(item.val)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Footer - מאוזן וברור */}
+        <div className="p-6 pt-0 flex justify-between items-center px-8 pb-8">
+          <div className="flex items-center gap-2">
+             <span className="text-[10px] font-bold text-slate-400 uppercase">קוד פריט:</span>
+             <span className="text-[11px] font-black text-[#002147]/60">{row[idx.code]}</span>
+          </div>
+          <span className="text-[9px] text-slate-200 font-bold uppercase tracking-[0.4em]">Healson Elite Care</span>
         </div>
       </div>
     </div>
